@@ -16,6 +16,7 @@ class VectorStore:
         self.embedding_model = EmbeddingModel()
 
     def create_collection(self):
+
         if self.client.collection_exists(COLLECTION_NAME):
             return
 
@@ -27,7 +28,14 @@ class VectorStore:
             ),
         )
 
-    def add_memory(self, memory_id: int, text: str):
+    def add_memory(
+        self,
+        memory_id: str,
+        text: str,
+        category: str,
+        confidence: float,
+        source: str,
+    ):
 
         embedding = self.embedding_model.encode(text)
 
@@ -35,16 +43,19 @@ class VectorStore:
             id=memory_id,
             vector=embedding,
             payload={
-                "text": text
-            }
+                "text": text,
+                "category": category,
+                "confidence": confidence,
+                "source": source,
+            },
         )
 
         self.client.upsert(
             collection_name=COLLECTION_NAME,
-            points=[point]
+            points=[point],
         )
 
-        print(f"Memory {memory_id} stored.")
+        print(f"Memory stored: {memory_id}")
 
     def search(self, query: str, limit: int = 3):
 
@@ -57,27 +68,3 @@ class VectorStore:
         ).points
 
         return results
-
-
-if __name__ == "__main__":
-
-    store = VectorStore()
-
-    store.create_collection()
-
-    store.add_memory(
-        1,
-        "Rahul likes cricket and watches cricket matches on weekends."
-    )
-
-    results = store.search(
-        "What sport does Rahul enjoy?"
-    )
-
-    print("\nSearch results:")
-
-    for result in results:
-        print(
-            f"Score: {result.score:.4f} | "
-            f"Memory: {result.payload['text']}"
-        )
