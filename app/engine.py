@@ -1,43 +1,29 @@
+import uuid
+
 from app.llm import ask_llm
 from app.prompt_builder import build_prompt
-from memory.database import save_message, get_messages
-import uuid
+from memory.manager import MemoryManager
 
 
 class AIEngine:
 
     def __init__(self):
         self.conversation_id = str(uuid.uuid4())
+        self.memory = MemoryManager(self.conversation_id)
 
     def respond(self, user_input: str) -> str:
 
-        # Save user message
-        save_message(
-            self.conversation_id,
-            "user",
-            user_input
-        )
+        self.memory.save_user_message(user_input)
 
-        # Get previous conversation
-        messages = get_messages(self.conversation_id)
-
-        conversation_history = "\n".join(
-            f"{speaker}: {text}"
-            for _, _, speaker, text, _ in messages
-        )
+        conversation_context = self.memory.get_context()
 
         prompt = build_prompt(
             user_input=user_input,
-            memories=conversation_history
+            memories=conversation_context
         )
 
         response = ask_llm(prompt)
 
-        # Save AI response
-        save_message(
-            self.conversation_id,
-            "assistant",
-            response
-        )
+        self.memory.save_ai_message(response)
 
         return response
